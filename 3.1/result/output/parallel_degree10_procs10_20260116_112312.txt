@@ -1,0 +1,14 @@
+Command: mpiexec --allow-run-as-root -n 10 /home/gsiaf/Documents/parallhla/parallel-hw3/./test/../3.1/bin/polyno -n 10
+Degree: 10
+Processes: 10
+Serial Flag: False
+Return Code: 0
+Execution Time: 0.675322 seconds
+
+============================================================
+STDOUT:
+============================================================
+Broadcast time: 0.000056
+Compute time: 0.000000
+Reduce time: 0.000071
+Total time: 0.000127

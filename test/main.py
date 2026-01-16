@@ -71,8 +71,8 @@ def run_polynomial_test(num_processes, degree, serial_flag=False):
         result = subprocess.run(
             cmd,
             capture_output=True,
-            text=True,
-            timeout=300  # 5 minute timeout for large polynomials
+            text=True
+            # timeout=300  # 5 minute timeout for large polynomials
         )
         execution_time = time.time() - start_time
         
@@ -185,6 +185,8 @@ def run_all_tests():
     results = []
     
     for degree in test_degrees:
+
+        
         print(f"\n{'*'*60}")
         print(f"TESTING POLYNOMIAL DEGREE: {degree}")
         print(f"{'*'*60}")

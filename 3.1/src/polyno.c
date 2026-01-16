@@ -112,8 +112,8 @@ int main(int argc, char **argv) {
     void *encoded_data;
     long long int *C2;
     int grade = -1;
-    long long int* C;
-    int serial_flag = 1;
+    // long long int* C;
+    int serial_flag = 0;
 
     double local_compute_time = 0;
     double max_compute_time = 0;
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
             arr2[i] = RandomNumber();
         }
 
-        C = calloc((grade*2 + 1), sizeof(long long int));
+        // C = calloc((grade*2 + 1), sizeof(long long int));
         // if (serial_flag == 1)
         //     SerialMult(arr, arr2, C, grade);
         
