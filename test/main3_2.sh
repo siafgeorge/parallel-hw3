@@ -48,7 +48,7 @@ for np in "${PROCESS_COUNTS[@]}"; do
                 echo "Running: mpiexec -n $np with -s $size -z $zeros -m $mult"
                 
                 # Run the program and save output
-                mpiexec -n "$np" --allow-run-as-root ./bin/main -s "$size" -z "$zeros" -m "$mult" > "$OUTPUT_FILE" 2>&1
+                mpiexec -n "$np" --mca plm_rsh_agent "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -x" ./bin/main -s "$size" -z "$zeros" -m "$mult" > "$OUTPUT_FILE" 2>&1
                 
                 # Parse the output file and extract timing data using more robust pattern
                 CSR_CONSTRUCTION=$(grep -oP 'CSR construction time: \K[0-9.]+' "$OUTPUT_FILE" | tail -1)

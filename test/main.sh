@@ -40,7 +40,7 @@ for np in "${PROCESS_COUNTS[@]}"; do
         echo "Running: mpiexec -n $np with grade $grade"
         
         # Run the program and save output
-        mpiexec -n "$np" -hostfile ./src/hosts.txt ./bin/polyno -n "$grade" > "$OUTPUT_FILE" 2>&1
+        mpiexec -n "$np" --mca plm_rsh_agent "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -x"  -hostfile ./src/hosts.txt ./bin/polyno -n "$grade" > "$OUTPUT_FILE" 2>&1
         
         # Parse the output file and extract timing data using more robust pattern
         # Extract the number after "time:" pattern
