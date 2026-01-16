@@ -5,6 +5,7 @@ CFLAGS = -g -Wall -I$(Include)
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,bin/%.o,$(SRCS))
 
+Flags = -s 3 -z 10 -m 30
 TARGET = main
 
 all: clean bin/$(TARGET)
@@ -17,7 +18,7 @@ bin/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 run: bin/$(TARGET)
-	mpiexec	-n 4 ./bin/$(TARGET)
+	mpiexec	-n 2 --allow-run-as-root ./bin/$(TARGET) $(Flags)
 
 # par: bin/$(TARGET)
 # 	./bin/$(TARGET) $(Parallel)
