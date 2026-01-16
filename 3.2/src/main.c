@@ -89,19 +89,32 @@ void serialMultSparseMatrixWithVector(long long *vector, SparseMatrix sparse_mat
     return;
 }
 
-void serialMultDenseMatrixWithVector(int **dense_matrix, long long size, long long *vector, long long *result_vector) {
+void serialMultDenseMatrixWithVector(int *dense_matrix, long long size, long long *vector, long long *result_vector) {
     for (long long i = 0; i < size; i++) {
         result_vector[i] = 0;
     }
     for (long long i = 0; i < size; i++) {
         for (long long j = 0; j < size; j++) {
-            result_vector[i] += dense_matrix[i][j] * vector[j];
+            result_vector[i] += dense_matrix[i*size + j] * vector[j];
         }
     }
     return;
 }
 
-
+void parallelMultDenseMatrixWithVector(int *dense_matrix, long long size, long long *vector, long long *result_vector, int comm_size, int my_rank) {
+    long long rows_per_process = size / comm_size;
+    long long start_row = my_rank * rows_per_process;
+    long long end_row = (my_rank == comm_size - 1) ? size : start_row + rows_per_process;
+    
+    for (long long i = start_row; i < end_row; i++) {
+        result_vector[i] = 0;
+        for (long long j = 0; j < size; j++) {
+            result_vector[i] += dense_matrix[i * size + j] * vector[j];
+        }
+    }
+    
+    return;
+}
 
 int main(int argc, char *argv[]) {
     srand(63); // same seed for reproducibility
@@ -155,45 +168,98 @@ int main(int argc, char *argv[]) {
         for (long long i = 0; i < size; i++){
             vector[i] = rand() % 10;
         }
-
+        MPI_Bcast(&dense_mode, 1, MPI_INT, 0, MPI_COMM_WORLD);
         printf("size = %lld\n", size);
-        SparseMatrix sparse_matrix = malloc(sizeof(struct sparse_matrix));
-        convert_to_sparse(Array, size, (size*size*zeros)/100, sparse_matrix);
-        MPI_Bcast(&size, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&sparse_matrix->non_zero_v, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(sparse_matrix->V, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(sparse_matrix->col_index, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(sparse_matrix->row_index, size + 1, MPI_INT, 0, MPI_COMM_WORLD);
-        
+        if(dense_mode){
+            printf("dense mode %d\n", my_rank);
+            MPI_Bcast(&size, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            
+            // Save original vector for comparison
+            long long *original_vector = calloc(size, sizeof(long long));
+            memcpy(original_vector, vector, size * sizeof(long long));
+            
+            long long * res1 = calloc(size, sizeof(long long));
+            memcpy(res1, vector, size * sizeof(long long));
+            // Run serial multiplication 'multiplications' times
+            for (int i = 0; i < multiplications; i++) {
+                memset(result_vector, 0, sizeof(long long) * size);
+                serialMultDenseMatrixWithVector(Array, size, res1, result_vector);
+                memcpy(res1, result_vector, size * sizeof(long long));
+            }
+    
+            printf("result vector from serial multiplication:\n");
+            for (int i = 0; i < size; i++) {
+                printf("%lld ", result_vector[i]);
+            }
+            printf("\n");
+            
+            // Restore original vector for parallel computation
+            memcpy(vector, original_vector, size * sizeof(long long));
+            free(original_vector);
+            
+            long long* reduce_buffer = calloc(size, sizeof(long long));
+            for (int i = 0; i < multiplications; i++) {
+                memset(result_vector, 0, sizeof(long long) * size);
+                MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+                parallelMultDenseMatrixWithVector(Array, size, vector, result_vector, comm_size, my_rank);
+                memset(reduce_buffer, 0, sizeof(long long) * size);
+                MPI_Reduce(result_vector, reduce_buffer, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+                memcpy(vector, reduce_buffer, size * sizeof(long long));
+            }
+            memcpy(result_vector, vector, size * sizeof(long long));
+            free(reduce_buffer);
+            free(res1);
 
-
-
-        long long int * res2 = calloc(size, sizeof(long long));
-        serialMultSparseMatrixWithVector(vector, sparse_matrix, result_vector);
-        memcpy(res2, result_vector, size * sizeof(long long));
-        memset(result_vector, 0, sizeof(long long) * size);
-        serialMultSparseMatrixWithVector(res2, sparse_matrix, result_vector);
-
-        printf("result vector from serial multiplication:\n");
-        for (int i = 0; i < size; i++) {
-            printf("%lld ", result_vector[i]);
+        }else{
+            printf("sparse mode %d\n", my_rank);
+            SparseMatrix sparse_matrix = malloc(sizeof(struct sparse_matrix));
+            convert_to_sparse(Array, size, (size*size*zeros)/100, sparse_matrix);
+            MPI_Bcast(&size, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(&sparse_matrix->non_zero_v, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(sparse_matrix->V, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(sparse_matrix->col_index, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(sparse_matrix->row_index, size + 1, MPI_INT, 0, MPI_COMM_WORLD);
+            
+            // Save original vector for comparison
+            long long *original_vector = calloc(size, sizeof(long long));
+            memcpy(original_vector, vector, size * sizeof(long long));
+    
+            long long int * res2 = calloc(size, sizeof(long long));
+            memcpy(res2, vector, size * sizeof(long long));
+            // Run serial multiplication 'multiplications' times
+            for (int i = 0; i < multiplications; i++) {
+                memset(result_vector, 0, sizeof(long long) * size);
+                serialMultSparseMatrixWithVector(res2, sparse_matrix, result_vector);
+                memcpy(res2, result_vector, size * sizeof(long long));
+            }
+    
+            printf("result vector from serial multiplication:\n");
+            for (int i = 0; i < size; i++) {
+                printf("%lld ", result_vector[i]);
+            }
+            printf("\n");
+            
+            // Restore original vector for parallel computation
+            memcpy(vector, original_vector, size * sizeof(long long));
+            free(original_vector);
+            
+            long long* reduce_buffer = calloc(size, sizeof(long long));
+            for (int i = 0; i < multiplications; i++) {
+                memset(result_vector, 0, sizeof(long long) * size);
+                MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+                parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
+                memset(reduce_buffer, 0, sizeof(long long) * size);
+                MPI_Reduce(result_vector, reduce_buffer, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+                memcpy(vector, reduce_buffer, size * sizeof(long long));
+            }
+            memcpy(result_vector, vector, size * sizeof(long long));
+            free(reduce_buffer);
+            free(res2);
         }
-        printf("\n");
-        long long* reduce_buffer = calloc(size, sizeof(long long));
-        for (int i = 0; i < multiplications; i++) {
-            memset(result_vector, 0, sizeof(long long) * size);
-            MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-            parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
-            memset(reduce_buffer, 0, sizeof(long long) * size);  // Reset buffer instead of reallocating
-            MPI_Reduce(result_vector, reduce_buffer, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-            // Copy result back to vector for next iteration
-            memcpy(vector, reduce_buffer, size * sizeof(long long));
-        }
-        // Copy final result to result_vector for printing
-        memcpy(result_vector, vector, size * sizeof(long long));
-        free(reduce_buffer);
         
         
         // printf("result vector from parallel multiplication:\n");
@@ -207,46 +273,80 @@ int main(int argc, char *argv[]) {
         zeros = 0;
         multiplications = 0;
         dense_mode = 0;
-
-
-        // Worker processes: initialize variables
-        sparse_matrix = malloc(sizeof(struct sparse_matrix));
-        MPI_Bcast(&size, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-        sparse_matrix->size = size;
-        Array = calloc(size * size, sizeof(int));
-        MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);  // Moved to match root order
-
-        MPI_Bcast(&sparse_matrix->non_zero_v, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-        
-        sparse_matrix->col_index = malloc(sparse_matrix->non_zero_v * sizeof(int));
-        sparse_matrix->row_index = malloc((size + 1) * sizeof(int));
-        sparse_matrix->V = malloc(sparse_matrix->non_zero_v * sizeof(int));
-
-        MPI_Bcast(sparse_matrix->V, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(sparse_matrix->col_index, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(sparse_matrix->row_index, size + 1, MPI_INT, 0, MPI_COMM_WORLD);
-        // Removed duplicate MPI_Bcast(&multiplications, ...) from here
-        printf("Non-zero values: ");
-        for (long long i = 0; i < sparse_matrix->non_zero_v; i++) {
-            printf("%d ", sparse_matrix->V[i]);
+        MPI_Bcast(&dense_mode, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        if (dense_mode) {
+            printf("dense mode %d\n", my_rank);
+            // Worker processes: initialize variables
+            MPI_Bcast(&size, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            printf("size received: %lld\n", size);
+            Array = calloc(size * size, sizeof(int));
+            MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
+            printf("Array received:\n");
+            for (long long i = 0; i < size; i++) {
+                for (long long j = 0; j < size; j++) {
+                    printf("%d ", Array[i * size + j]);
+                }
+                printf("\n");
+            }
+            MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            printf("multiplications received: %d\n", multiplications);
+            vector = calloc(size, sizeof(long long));
+            result_vector = calloc(size, sizeof(long long));
+            for(int i=0; i < multiplications; i++) {
+                
+                memset(result_vector, 0, sizeof(long long) * size);
+                
+                MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+                printf("vector received %d: my rank: %d", i, my_rank);
+                for (int k = 0; k < size; k++) {
+                    printf("%lld ", vector[k]);
+                }
+                printf("\n");
+                parallelMultDenseMatrixWithVector(Array, size, vector, result_vector, comm_size, my_rank);
+                MPI_Reduce(result_vector, NULL, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            }
         }
-        printf("\nColumn indices: ");
-        for (long long i = 0; i < sparse_matrix->non_zero_v; i++) {
-            printf("%d ", sparse_matrix->col_index[i]);
-        }
-        printf("\nRow indices: ");
-        for (long long i = 0; i < size + 1; i++) {
-            printf("%d ", sparse_matrix->row_index[i]);
-        }
-        printf("\n");
-        vector = calloc(size, sizeof(long long));
-        result_vector = calloc(size, sizeof(long long));
-        for(int i=0; i < multiplications; i++) {
-            memset(result_vector, 0, sizeof(long long) * size);
-            MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-            parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
-            MPI_Reduce(result_vector, NULL, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        else {
+            printf("sparse mode %d\n", my_rank);
+            // Worker processes: initialize variables
+            sparse_matrix = malloc(sizeof(struct sparse_matrix));
+            MPI_Bcast(&size, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            sparse_matrix->size = size;
+            Array = calloc(size * size, sizeof(int));
+            MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);  // Moved to match root order
+    
+            MPI_Bcast(&sparse_matrix->non_zero_v, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            
+            sparse_matrix->col_index = malloc(sparse_matrix->non_zero_v * sizeof(int));
+            sparse_matrix->row_index = malloc((size + 1) * sizeof(int));
+            sparse_matrix->V = malloc(sparse_matrix->non_zero_v * sizeof(int));
+    
+            MPI_Bcast(sparse_matrix->V, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(sparse_matrix->col_index, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(sparse_matrix->row_index, size + 1, MPI_INT, 0, MPI_COMM_WORLD);
+            // Removed duplicate MPI_Bcast(&multiplications, ...) from here
+            printf("Non-zero values: ");
+            for (long long i = 0; i < sparse_matrix->non_zero_v; i++) {
+                printf("%d ", sparse_matrix->V[i]);
+            }
+            printf("\nColumn indices: ");
+            for (long long i = 0; i < sparse_matrix->non_zero_v; i++) {
+                printf("%d ", sparse_matrix->col_index[i]);
+            }
+            printf("\nRow indices: ");
+            for (long long i = 0; i < size + 1; i++) {
+                printf("%d ", sparse_matrix->row_index[i]);
+            }
+            printf("\n");
+            vector = calloc(size, sizeof(long long));
+            result_vector = calloc(size, sizeof(long long));
+            for(int i=0; i < multiplications; i++) {
+                memset(result_vector, 0, sizeof(long long) * size);
+                MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+                parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
+                MPI_Reduce(result_vector, NULL, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            }
         }
     }
 
