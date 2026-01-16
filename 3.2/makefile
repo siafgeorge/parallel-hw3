@@ -5,7 +5,7 @@ CFLAGS = -g -Wall -I$(Include)
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,bin/%.o,$(SRCS))
 
-Flags = -s 10 -z 10 -m 2
+Flags = -s 1000 -z 40 -m 15
 TARGET = main
 
 all: clean bin/$(TARGET)
