@@ -161,32 +161,46 @@ int main(int argc, char *argv[]) {
         convert_to_sparse(Array, size, (size*size*zeros)/100, sparse_matrix);
         MPI_Bcast(&size, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
-
+        MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&sparse_matrix->non_zero_v, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(sparse_matrix->V, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(sparse_matrix->col_index, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(sparse_matrix->row_index, size + 1, MPI_INT, 0, MPI_COMM_WORLD);
         
-        MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
 
 
-        
+
+        long long int * res2 = calloc(size, sizeof(long long));
         serialMultSparseMatrixWithVector(vector, sparse_matrix, result_vector);
+        memcpy(res2, result_vector, size * sizeof(long long));
+        memset(result_vector, 0, sizeof(long long) * size);
+        serialMultSparseMatrixWithVector(res2, sparse_matrix, result_vector);
 
         printf("result vector from serial multiplication:\n");
         for (int i = 0; i < size; i++) {
             printf("%lld ", result_vector[i]);
         }
         printf("\n");
-                
-        memset(result_vector, 0, sizeof(long long) * size);
-        parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
-
-        printf("result vector from parallel multiplication:\n");
-        for (int i = 0; i < size; i++) {
-            printf("%lld ", result_vector[i]);
+        long long* reduce_buffer = calloc(size, sizeof(long long));
+        for (int i = 0; i < multiplications; i++) {
+            memset(result_vector, 0, sizeof(long long) * size);
+            MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
+            memset(reduce_buffer, 0, sizeof(long long) * size);  // Reset buffer instead of reallocating
+            MPI_Reduce(result_vector, reduce_buffer, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            // Copy result back to vector for next iteration
+            memcpy(vector, reduce_buffer, size * sizeof(long long));
         }
-        printf("\n");
+        // Copy final result to result_vector for printing
+        memcpy(result_vector, vector, size * sizeof(long long));
+        free(reduce_buffer);
+        
+        
+        // printf("result vector from parallel multiplication:\n");
+        // for (int i = 0; i < size; i++) {
+        //     printf("%lld ", result_vector[i]);
+        // }
+        // printf("\n");
 
     } else {
         size = 0;
@@ -201,6 +215,7 @@ int main(int argc, char *argv[]) {
         sparse_matrix->size = size;
         Array = calloc(size * size, sizeof(int));
         MPI_Bcast(Array, size*size, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&multiplications, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);  // Moved to match root order
 
         MPI_Bcast(&sparse_matrix->non_zero_v, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
         
@@ -211,7 +226,7 @@ int main(int argc, char *argv[]) {
         MPI_Bcast(sparse_matrix->V, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(sparse_matrix->col_index, sparse_matrix->non_zero_v, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(sparse_matrix->row_index, size + 1, MPI_INT, 0, MPI_COMM_WORLD);
-
+        // Removed duplicate MPI_Bcast(&multiplications, ...) from here
         printf("Non-zero values: ");
         for (long long i = 0; i < sparse_matrix->non_zero_v; i++) {
             printf("%d ", sparse_matrix->V[i]);
@@ -227,10 +242,12 @@ int main(int argc, char *argv[]) {
         printf("\n");
         vector = calloc(size, sizeof(long long));
         result_vector = calloc(size, sizeof(long long));
-        MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
-        parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
-        MPI_Reduce(result_vector, NULL, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-        // memcpy(vector, result_vector, size * sizeof(long long));
+        for(int i=0; i < multiplications; i++) {
+            memset(result_vector, 0, sizeof(long long) * size);
+            MPI_Bcast(vector, size, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
+            parallelMultSparseMatrixWithVector(vector, sparse_matrix, result_vector, comm_size, my_rank);
+            MPI_Reduce(result_vector, NULL, size, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        }
     }
 
     // long long *reduce_buffer = NULL;
