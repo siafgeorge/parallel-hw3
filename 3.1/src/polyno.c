@@ -84,8 +84,8 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     long long int *C2;
     int grade = -1;
-    long long int* C;
-    int serial_flag = 0;
+    // long long int* C;
+    // int serial_flag = 0;
 
     double local_compute_time = 0;
     double max_compute_time = 0;
@@ -98,22 +98,18 @@ int main(int argc, char **argv) {
     double t1, t2;
     if (my_rank == 0) {
         char opt;
-        if (argc != 5 && argc != 3){
-            fprintf(stderr, "Usage prog.c -n <grade of polynomial> -s <serial flag>\n");
+        if (argc != 3){
+            fprintf(stderr, "Usage prog.c -n <grade of polynomial>\n");
             return 1;
         }
-        while ((opt = getopt(argc, argv, "n:s:")) != -1){ 
+        while ((opt = getopt(argc, argv, "n:")) != -1){ 
             switch (opt)
             {
             case 'n': // grade of polynomial
                 grade = atoi(optarg);
                 break;
-            case 's': // serial flag
-                serial_flag = atoi(optarg);
-                break;
-                
             default:
-                fprintf(stderr, "Usage: %s -n <grade of polynomial> -s <serial flag>\n", argv[0]);
+                fprintf(stderr, "Usage: %s -n <grade of polynomial>\n", argv[0]);
                 return 1;
                 break;
             }
@@ -121,11 +117,7 @@ int main(int argc, char **argv) {
         }
 
         if(grade < 0){
-            fprintf(stderr, "Usage: %s -n <grade of polynomial> -s <serial flag>\n", argv[0]);
-            return 1;
-        }
-        if(serial_flag < 0){
-            fprintf(stderr, "Serial flag must be at least 0\n");
+            fprintf(stderr, "Usage: %s -n <grade of polynomial>\n", argv[0]);
             return 1;
         }
 
@@ -140,9 +132,9 @@ int main(int argc, char **argv) {
             arr2[i] = RandomNumber();
         }
 
-        C = calloc((grade*2 + 1), sizeof(long long int));
-        if (serial_flag == 1)
-            SerialMult(arr, arr2, C, grade);
+        // C = calloc((grade*2 + 1), sizeof(long long int));
+        // if (serial_flag == 1)
+        //     SerialMult(arr, arr2, C, grade);
 
 
 
@@ -215,10 +207,10 @@ int main(int argc, char **argv) {
     printf("Compute time: %lf\n", max_compute_time);
     printf("Reduce time: %lf\n", reduce_time);
     printf("Total time: %lf\n", total_end - total_start);
-    if (serial_flag == 1) {
-        int ret =  memcmp(C, C2, (grade * 2 + 1) * sizeof(long long int));
-        ret == 0 ? printf("%d\n", 1) : printf("%d\n", 0);
-    }
+    // if (serial_flag == 1) {
+    //     int ret =  memcmp(C, C2, (grade * 2 + 1) * sizeof(long long int));
+    //     ret == 0 ? printf("%d\n", 1) : printf("%d\n", 0);
+    // }
 
     // free(arr);
     // free(arr2);

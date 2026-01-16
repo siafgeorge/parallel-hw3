@@ -6,10 +6,10 @@ SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,bin/%.o,$(SRCS))
 
 TARGET = polyno
-Serial = -n 10 -s 1
+Serial = -n 10
 Parallel = -n 1000000 -t 12
 
-all: clean bin/$(TARGET)
+all: bin/$(TARGET)
 
 bin/$(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
@@ -19,7 +19,7 @@ bin/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 run: bin/$(TARGET)
-	mpiexec	-n 4 --allow-run-as-root ./bin/$(TARGET) $(Serial)
+	mpiexec	-n 4 -hostfile ./src/hosts.txt ./bin/$(TARGET) $(Serial)
 
 # par: bin/$(TARGET)
 # 	./bin/$(TARGET) $(Parallel)
