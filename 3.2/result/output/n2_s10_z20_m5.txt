@@ -1,0 +1,17 @@
+No protocol specified
+=== Timing Results ===
+CSR construction time: 0.000006
+Broadcast time (CSR): 0.000228
+Compute time (CSR): 0.000052
+Total time (CSR): 0.000286
+Compute time (Dense): 0.000047
+Total time (Dense): 0.000047
+
+=== Result Vectors ===
+CSR Result Vector (first 10 elements):
+1244147898 1160341930 1390788301 1409287336 1620427698 1314709186 2045684104 1262690674 1137579163 1481141338 
+
+Dense Result Vector (first 10 elements):
+1244147898 1160341930 1390788301 1409287336 1620427698 1314709186 2045684104 1262690674 1137579163 1481141338 
+
+Results match: YES

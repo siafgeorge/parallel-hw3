@@ -1,0 +1,69 @@
+No protocol specified
+Warning: Permanently added 'linux28,195.134.65.99' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux29,195.134.65.100' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux22,195.134.65.93' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux27,195.134.65.102' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux16,195.134.65.87' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux23,195.134.65.94' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux24,195.134.65.95' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux19,195.134.65.90' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux25,195.134.65.96' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux05,195.134.65.76' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux15,195.134.65.86' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux07,195.134.65.78' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux03,195.134.65.74' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux04,195.134.65.75' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux26,195.134.65.97' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux02,195.134.65.73' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux01,195.134.65.72' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux18,195.134.65.89' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux11,195.134.65.82' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux10,195.134.65.81' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux12,195.134.65.83' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux13,195.134.65.84' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux21,195.134.65.92' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux06,195.134.65.77' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux17,195.134.65.88' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux20,195.134.65.91' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux08,195.134.65.79' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux09,195.134.65.80' (ECDSA) to the list of known hosts.
+Warning: Permanently added 'linux14,195.134.65.85' (ECDSA) to the list of known hosts.
+Invalid MIT-MAGIC-COOKIE-1 keyInvalid MIT-MAGIC-COOKIE-1 keyNo protocol specified
+No protocol specified
+Invalid MIT-MAGIC-COOKIE-1 keyNo protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+Invalid MIT-MAGIC-COOKIE-1 keyNo protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+Invalid MIT-MAGIC-COOKIE-1 keyInvalid MIT-MAGIC-COOKIE-1 keyNo protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+No protocol specified
+Invalid MIT-MAGIC-COOKIE-1 keyNo protocol specified
+Invalid MIT-MAGIC-COOKIE-1 keyNo protocol specified
+Invalid MIT-MAGIC-COOKIE-1 key=== Timing Results ===
+CSR construction time: 1.272315
+Broadcast time (CSR): 14.879375
+Compute time (CSR): 0.275044
+Total time (CSR): 16.426743
+Compute time (Dense): 0.200503
+Total time (Dense): 0.200507
+
+=== Result Vectors ===
+CSR Result Vector (first 10 elements):
+-8210988431957511952 -2786202792057728307 3636659170682365034 8184127925799530841 3211917822287425129 4650451064804592064 -1595541810356684457 -4838122702434913096 7186257748748788945 7475235234956552620 
+
+Dense Result Vector (first 10 elements):
+-8210988431957511952 -2786202792057728307 3636659170682365034 8184127925799530841 3211917822287425129 4650451064804592064 -1595541810356684457 -4838122702434913096 7186257748748788945 7475235234956552620 
+
+Results match: YES

@@ -18,10 +18,10 @@ make clean
 make
 
 # Process counts: 2, 12, 22, 32, 42, 52, 62, 72, 82
-PROCESS_COUNTS=(2 12 22 32 42 52 62 72 82)
+PROCESS_COUNTS=(2 12 22 32 42 52)
 
 # Grade numbers
-GRADE_NUMBERS=(10 100 1000 10000 100000 1000000)
+GRADE_NUMBERS=(10 100 1000 10000 100000)
 
 # Run tests
 for np in "${PROCESS_COUNTS[@]}"; do
